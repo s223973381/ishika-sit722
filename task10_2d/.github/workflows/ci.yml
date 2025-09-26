@@ -1,0 +1,53 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - testing
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [customer_service, order_service, product_service, frontend]
+
+    steps:
+      # Step 1 - Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2 - Set up Python for backend services
+      - name: Set up Python
+        if: ${{ matrix.service != 'frontend' }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # Step 3 - Install dependencies & run tests
+      - name: Install dependencies
+        if: ${{ matrix.service != 'frontend' }}
+        run: |
+          cd backend/${{ matrix.service }}
+          pip install -r requirements-dev.txt
+          pytest tests/ --maxfail=1 --disable-warnings -q
+
+      # Step 4 - Docker login to ACR
+      - name: Docker login
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+          registry: ${{ secrets.ACR_LOGIN_SERVER }}
+
+      # Step 5 - Build & Push Docker Image
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}
+          if [ "${{ matrix.service }}" = "frontend" ]; then
+            cd frontend
+          else
+            cd backend/${{ matrix.service }}
+          fi
+          docker build -t $IMAGE .
+          docker push $IMAGE
