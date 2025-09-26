@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies
         if: ${{ matrix.service != 'frontend' }}
         run: |
-          cd backend/${{ matrix.service }}
+          cd task10_2d/backend/${{ matrix.service }}
           pip install -r requirements-dev.txt
           pytest tests/ --maxfail=1 --disable-warnings -q
 
@@ -45,9 +45,9 @@ jobs:
         run: |
           IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}
           if [ "${{ matrix.service }}" = "frontend" ]; then
-            cd frontend
+            cd task10_2d/frontend
           else
-            cd backend/${{ matrix.service }}
+            cd task10_2d/backend/${{ matrix.service }}
           fi
           docker build -t $IMAGE .
           docker push $IMAGE
