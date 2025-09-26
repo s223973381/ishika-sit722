@@ -32,6 +32,11 @@ jobs:
           pip install -r requirements-dev.txt
           pytest tests/ --maxfail=1 --disable-warnings -q
 
+      - name: Debug secrets
+        run: |
+    echo "Registry: ${{ secrets.ACR_LOGIN_SERVER }}"
+    echo "User: ${{ secrets.ACR_USERNAME }}"   
+
       # Step 4 - Docker login to ACR
       - name: Docker login
         uses: docker/login-action@v2
