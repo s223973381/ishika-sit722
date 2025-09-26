@@ -32,11 +32,6 @@ jobs:
           pip install -r requirements-dev.txt
           pytest tests/ --maxfail=1 --disable-warnings -q
       
-      - name: Debug secrets
-        if: ${{ matrix.service != 'frontend' }}
-        run: |
-          echo "Registry: ${{ secrets.ACR_LOGIN_SERVER }}"
-          echo "User: ${{ secrets.ACR_USERNAME }}" 
 
     
 
