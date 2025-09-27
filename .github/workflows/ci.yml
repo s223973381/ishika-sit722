@@ -29,12 +29,9 @@ jobs:
         if: ${{ matrix.service != 'frontend' }}
         run: |
           cd task10_2d/backend/${{ matrix.service }}
-            pip install -r requirements-dev.txt
-            export USE_SQLITE_FOR_TESTS=true
-            pytest tests/ --maxfail=1 --disable-warnings -q
-      
-
-    
+          pip install -r requirements-dev.txt
+          export USE_SQLITE_FOR_TESTS=true
+          pytest tests/ --maxfail=1 --disable-warnings -q
 
       # Step 4 - Docker login to ACR
       - name: Docker login
