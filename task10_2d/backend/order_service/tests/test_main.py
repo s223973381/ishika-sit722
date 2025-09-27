@@ -8,6 +8,7 @@ from app.db import SessionLocal, engine, get_db
 from app.main import PRODUCT_SERVICE_URL, app
 from app.models import Base, Order, OrderItem
 
+
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
