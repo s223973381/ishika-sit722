@@ -31,7 +31,7 @@ jobs:
           cd task10_2d/backend/${{ matrix.service }}
           pip install -r requirements-dev.txt
           export USE_SQLITE_FOR_TESTS=true
-          python -c "from app.db import init_db; init_db()" 
+          p python -c "from app.db import init_db; init_db()"
           pytest tests/ --maxfail=1 --disable-warnings -q
 
       # Step 4 - Docker login to ACR

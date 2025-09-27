@@ -36,3 +36,7 @@ def get_db():
         yield db
     finally:
         db.close()
+def init_db():
+    """Create all tables (used for testing with SQLite)."""
+    from . import models  # ✅ import models so Base knows them
+    Base.metadata.create_all(bind=engine)
