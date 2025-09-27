@@ -25,12 +25,13 @@ jobs:
           python-version: '3.11'
 
       # Step 3 - Install dependencies & run tests
-      - name: Install dependencies
+      - name: Install dependencies & run tests
         if: ${{ matrix.service != 'frontend' }}
         run: |
           cd task10_2d/backend/${{ matrix.service }}
-          pip install -r requirements-dev.txt
-          pytest tests/ --maxfail=1 --disable-warnings -q
+            pip install -r requirements-dev.txt
+            export USE_SQLITE_FOR_TESTS=true
+            pytest tests/ --maxfail=1 --disable-warnings -q
       
 
     
