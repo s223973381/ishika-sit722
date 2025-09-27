@@ -7,10 +7,13 @@ from sqlalchemy.orm import sessionmaker
 USE_SQLITE_FOR_TESTS = os.getenv("USE_SQLITE_FOR_TESTS", "false").lower() == "true"
 
 if USE_SQLITE_FOR_TESTS:
-    # ✅ In-memory SQLite DB (used for GitHub Actions tests)
     DATABASE_URL = "sqlite:///:memory:"
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},  # ✅ allow multi-threaded use
+        pool_pre_ping=True,
+    )
 else:
-    # ✅ Default to Postgres (used in dev/prod)
     POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
     POSTGRES_DB = os.getenv("POSTGRES_DB", "customers")
@@ -21,6 +24,7 @@ else:
         f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@"
         f"{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
     )
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
