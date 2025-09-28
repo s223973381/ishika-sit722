@@ -30,6 +30,8 @@ jobs:
         run: |
           cd task10_2d/backend/${{ matrix.service }}
           pip install -r requirements-dev.txt
+          export USE_SQLITE_FOR_TESTS=true
+          export EXPECTED_SERVICE=${{ matrix.service }}
           pytest tests/ --maxfail=1 --disable-warnings -q
         env:
           USE_SQLITE_FOR_TESTS: "true"
