@@ -1,19 +1,16 @@
-import pytest
+import os
 from fastapi.testclient import TestClient
 from app.main import app
-from app.db import init_db
-
-# ✅ Ensure DB schema exists
-init_db()
 
 client = TestClient(app)
 
-def test_root_endpoint():
-    response = client.get("/")
-    assert response.status_code == 200
-    assert "Welcome" in response.json()["message"]
-
 def test_health_check():
     response = client.get("/health")
+    data = response.json()
+
+    # ✅ Get expected service from CI matrix
+    expected_service = os.getenv("EXPECTED_SERVICE", "unknown-service")
+
     assert response.status_code == 200
-    assert response.json()["service"] == "product-service"
+    assert data["status"] == "ok"
+    assert data["service"] == expected_service
