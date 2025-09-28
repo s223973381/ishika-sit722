@@ -18,13 +18,13 @@ else:
     POSTGRES_DB = os.getenv("POSTGRES_DB", "orders")
     POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
     POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
-
-    DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+    DATABASE_URL = (
+        f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+    )
     engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
-
 
 def get_db():
     db = SessionLocal()
@@ -33,8 +33,7 @@ def get_db():
     finally:
         db.close()
 
-
 def init_db():
-    """Ensure all tables exist (used in CI + local)."""
+    """Create tables (used at startup or in tests)."""
     from . import models
     Base.metadata.create_all(bind=engine)
