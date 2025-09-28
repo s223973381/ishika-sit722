@@ -46,7 +46,7 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}
-          if [ "${{ matrix.service}" = "frontend" ]; then
+          if [ "${{ matrix.service }}" = "frontend" ]; then
             cd task10_2d/frontend
           else
             cd task10_2d/backend/${{ matrix.service }}
