@@ -4,27 +4,19 @@ import logging
 import os
 import sys
 import time
-from decimal import Decimal
-from typing import List, Optional
+from typing import Optional
 
 import aio_pika
-import httpx
-from fastapi import Depends, FastAPI, HTTPException, Query, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
-from .db import Base, SessionLocal, engine, get_db, init_db
-from .models import Order, OrderItem
-from .schemas import (
-    OrderCreate,
-    OrderItemResponse,
-    OrderResponse,
-    OrderStatusUpdate,
-    OrderUpdate,
-)
+from .db import get_db, init_db, SessionLocal
+from .models import Order
+from .schemas import OrderCreate, OrderResponse
 
-# --- Logging ---
+# Logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -32,15 +24,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
-logging.getLogger("uvicorn.error").setLevel(logging.INFO)
 
-# --- Service URLs ---
-CUSTOMER_SERVICE_URL = os.getenv("CUSTOMER_SERVICE_URL", "http://localhost:8002")
-PRODUCT_SERVICE_URL = os.getenv("PRODUCT_SERVICE_URL", "http://localhost:8001")
-logger.info(f"Order Service: Customer Service URL: {CUSTOMER_SERVICE_URL}")
-logger.info(f"Order Service: Product Service URL: {PRODUCT_SERVICE_URL}")
+# FastAPI
+app = FastAPI(title="Order Service API", version="1.0.0")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-# --- RabbitMQ Config ---
+# RabbitMQ (disabled in CI)
+USE_SQLITE_FOR_TESTS = os.getenv("USE_SQLITE_FOR_TESTS", "false").lower() == "true"
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", "5672"))
 RABBITMQ_USER = os.getenv("RABBITMQ_USER", "guest")
@@ -50,28 +40,16 @@ rabbitmq_connection: Optional[aio_pika.Connection] = None
 rabbitmq_channel: Optional[aio_pika.Channel] = None
 rabbitmq_exchange: Optional[aio_pika.Exchange] = None
 
-# --- FastAPI App ---
-app = FastAPI(
-    title="Order Service API",
-    description="Manages orders for mini-ecommerce app",
-    version="1.0.0",
-)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# --- RabbitMQ Helpers ---
 async def connect_to_rabbitmq():
-    global rabbitmq_connection, rabbitmq_channel, rabbitmq_exchange
-    rabbitmq_url = f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/"
-    for i in range(10):
+    if USE_SQLITE_FOR_TESTS:
+        logger.info("Skipping RabbitMQ connection in CI.")
+        return False
+    url = f"amqp://{RABBITMQ_USER}:{RABBITMQ_PASS}@{RABBITMQ_HOST}:{RABBITMQ_PORT}/"
+    for i in range(5):
         try:
-            rabbitmq_connection = await aio_pika.connect_robust(rabbitmq_url)
+            global rabbitmq_connection, rabbitmq_channel, rabbitmq_exchange
+            rabbitmq_connection = await aio_pika.connect_robust(url)
             rabbitmq_channel = await rabbitmq_connection.channel()
             rabbitmq_exchange = await rabbitmq_channel.declare_exchange(
                 "ecomm_events", aio_pika.ExchangeType.DIRECT, durable=True
@@ -79,7 +57,7 @@ async def connect_to_rabbitmq():
             logger.info("Order Service: Connected to RabbitMQ.")
             return True
         except Exception as e:
-            logger.warning(f"Order Service: RabbitMQ connection failed: {e}")
+            logger.warning(f"RabbitMQ connection failed ({i+1}/5): {e}")
             await asyncio.sleep(5)
     return False
 
@@ -89,41 +67,28 @@ async def close_rabbitmq_connection():
         await rabbitmq_connection.close()
 
 
-async def publish_event(routing_key: str, message_data: dict):
-    if not rabbitmq_exchange:
-        logger.error("RabbitMQ not available")
-        return
-    message = aio_pika.Message(
-        body=json.dumps(message_data).encode("utf-8"),
-        content_type="application/json",
-        delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-    )
-    await rabbitmq_exchange.publish(message, routing_key=routing_key)
-
-# --- Startup/Shutdown ---
 @app.on_event("startup")
 async def startup_event():
     try:
-        init_db()  # ✅ ensures tables exist
-        logger.info("Order Service: Tables initialized.")
-    except Exception as e:
-        logger.critical(f"DB init failed: {e}", exc_info=True)
+        init_db()
+        logger.info("Order Service: Tables ensured.")
+    except OperationalError as e:
+        logger.critical(f"DB unavailable: {e}")
         sys.exit(1)
 
-    if await connect_to_rabbitmq():
-        asyncio.create_task(consume_stock_events(SessionLocal))
+    await connect_to_rabbitmq()
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
     await close_rabbitmq_connection()
 
-# --- Endpoints ---
+
 @app.get("/")
-async def read_root():
+async def root():
     return {"message": "Welcome to the Order Service!"}
 
-@app.get("/health")
-async def health_check():
-    return {"status": "ok", "service": "order-service"}
 
-# (👉 keep the rest of your CRUD/order endpoints exactly as you had them)
+@app.get("/health")
+async def health():
+    return {"status": "ok", "service": "order-service"}

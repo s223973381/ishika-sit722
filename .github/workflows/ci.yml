@@ -27,11 +27,11 @@ jobs:
       # Step 3 - Install dependencies & run tests
       - name: Install dependencies & run tests
         if: ${{ matrix.service != 'frontend' }}
+        env:
+          USE_SQLITE_FOR_TESTS: "true"   # ✅ Correct placement
         run: |
           cd task10_2d/backend/${{ matrix.service }}
           pip install -r requirements-dev.txt
-          export USE_SQLITE_FOR_TESTS=true
-          python -c "from app.db import init_db; init_db()" 
           pytest tests/ --maxfail=1 --disable-warnings -q
 
       # Step 4 - Docker login to ACR
@@ -46,7 +46,7 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}
-          if [ "${{ matrix.service }}" = "frontend" ]; then
+          if [ "${{ matrix.service}" = "frontend" ]; then
             cd task10_2d/frontend
           else
             cd task10_2d/backend/${{ matrix.service }}

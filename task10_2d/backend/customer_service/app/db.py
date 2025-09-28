@@ -3,14 +3,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Read env flag to decide whether to use SQLite or Postgres
+# Flag to toggle SQLite (for GitHub Actions)
 USE_SQLITE_FOR_TESTS = os.getenv("USE_SQLITE_FOR_TESTS", "false").lower() == "true"
 
 if USE_SQLITE_FOR_TESTS:
     DATABASE_URL = "sqlite:///:memory:"
     engine = create_engine(
         DATABASE_URL,
-        connect_args={"check_same_thread": False},  # ✅ allow multi-threaded use
+        connect_args={"check_same_thread": False},  # allow multi-threading
         pool_pre_ping=True,
     )
 else:
@@ -36,7 +36,9 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
 def init_db():
-    """Create all tables (used for testing with SQLite)."""
-    from . import models  # ✅ import models so Base knows them
+    """Create all tables (used both in CI/SQLite and local Postgres)."""
+    from . import models
     Base.metadata.create_all(bind=engine)
