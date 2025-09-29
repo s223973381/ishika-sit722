@@ -25,7 +25,7 @@ jobs:
           client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       # ✅ Deploy container image to App Service
-      - name: Deploy to Azure WebApp
+      - name: Deploy to Azure WebApp 
         uses: azure/webapps-deploy@v2
         with:
           app-name: sit722-staging-app
