@@ -3,33 +3,37 @@ name: Deploy to Production
 on:
   push:
     branches:
-      - main
+      - main   # ✅ Runs only when code is merged into main
+
+permissions:
+  id-token: write     # ✅ Required for OIDC login with azure/login
+  contents: read
 
 jobs:
   deploy-prod:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      # Step 1 - Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      # ✅ Login to Azure with Service Principal
+      # Step 2 - Login to Azure using OIDC
       - name: Azure Login
         uses: azure/login@v1
         with:
-          auth-type: SERVICE_PRINCIPAL
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          auth-type: IDENTITY
 
-      # ✅ Deploy container image to Production App Service
+      # Step 3 - Deploy image to Production WebApp
       - name: Deploy to Azure WebApp
         uses: azure/webapps-deploy@v2
         with:
-          app-name: sit722-prod-app   # Your Production Web App name
+          app-name: sit722-prod-app       # ✅ Your production webapp name
           images: ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
 
-      # ✅ Run acceptance test on Production
+      # Step 4 - Run acceptance tests
       - name: Run Acceptance Tests
         run: curl -f https://sit722-prod-app.azurewebsites.net/health
