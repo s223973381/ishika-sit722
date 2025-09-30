@@ -9,6 +9,11 @@ on:
       - testing
 
 jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Triggered by ${{ github.event.workflow_run.name }}"
+      
   deploy-staging:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
