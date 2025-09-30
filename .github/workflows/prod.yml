@@ -15,4 +15,4 @@ jobs:
 
       - name: Deploy to AKS
         run: |
-          kubectl set image deployment/sit722-app sit722-app=<your-registry>.azurecr.io/sit722-app:${{ github.sha }}
+          kubectl set image deployment/sit722-app sit722-app=ishikasit722.azurecr.io/sit722-app:${{ github.sha }}
