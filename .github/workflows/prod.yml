@@ -5,10 +5,6 @@ on:
     branches:
       - main
 
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
   deploy-prod:
     runs-on: ubuntu-latest
@@ -17,22 +13,23 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      # 🔐 Login to Azure using service principal
+      # ✅ Login to Azure with Service Principal
       - name: Azure Login
         uses: azure/login@v1
         with:
+          auth-type: SERVICE_PRINCIPAL
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
-      # 🚀 Deploy container image from ACR to Production App Service
+      # ✅ Deploy container image to Production App Service
       - name: Deploy to Azure WebApp
         uses: azure/webapps-deploy@v2
         with:
-          app-name: sit722-prod-app
+          app-name: sit722-prod-app   # Your Production Web App name
           images: ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
 
-      # ✅ Run simple health check
-      - name: Run Production Health Check
+      # ✅ Run acceptance test on Production
+      - name: Run Acceptance Tests
         run: curl -f https://sit722-prod-app.azurewebsites.net/health
