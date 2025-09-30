@@ -13,6 +13,19 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Deploy to AKS
-        run: |
-          kubectl set image deployment/sit722-app sit722-app=ishikasit722.azurecr.io/sit722-app:${{ github.sha }}
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+      - name: Deploy to Production WebApp
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: sit722-prod-app
+          images: ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
+
+      - name: Run Acceptance Tests
+        run: curl -f https://sit722-prod-app.azurewebsites.net/health
