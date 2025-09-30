@@ -13,19 +13,21 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Azure Login
-        uses: azure/login@v1
+      # ✅ Login to ACR
+      - name: Docker Login to ACR
+        uses: docker/login-action@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+          registry: ${{ secrets.ACR_LOGIN_SERVER }}
 
-      - name: Deploy to Production WebApp
+      # ✅ Deploy to Production WebApp
+      - name: Deploy to Azure WebApp
         uses: azure/webapps-deploy@v2
         with:
-          app-name: sit722-prod-app
+          app-name: sit722-prod-app   # ⚠️ create this in Azure Portal
           images: ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
 
-      - name: Run Acceptance Tests
+      # ✅ Smoke test production health
+      - name: Run Smoke Test
         run: curl -f https://sit722-prod-app.azurewebsites.net/health
